@@ -1,0 +1,14 @@
+.Xil/
+junk.vhd
+Session.vim
+build/
+vunit_out/
+*.cf
+.library_mapping.xml
+.project
+.settings/
+.pydevproject
+/transcript
+/compilation_order.csv
+pcie_mc_testsystem/
+vivado_*
