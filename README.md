@@ -21,7 +21,7 @@ The public types, functions and modules are documented in the main package files
 [pcie.vhd](./hardware/src/pcie.vhd) and [pcie_utilities.vhd](./hardware/src/pcie_utilities.vhd).
 
 
-### Adding VerCoLib PCIe an existing Vivado Project
+### Adding VerCoLib PCIe to an existing Vivado Project
 Run from the Vivado Tcl command line:
 ```tcl
 source ~/path/to/vercolib_pcie/scripts/add_vercolib_pcie.tcl
@@ -43,7 +43,7 @@ source path/to/vercolib_pcie/examples/<example_name>/create_project.tcl
 
 ### Dependencies
 For Simulation:
-* ModelSim (other Simulators with  VHDL-2008 support sould also work)
+* ModelSim (other Simulators with  VHDL-2008 support should also work)
 * VUnit
 
 For Synthesis:
