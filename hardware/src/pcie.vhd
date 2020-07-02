@@ -26,7 +26,7 @@ use ieee.numeric_std.all;
 --! A request signal, once asserted, may only ever be deasserted if
 --! the corresponding valid signal is asserted.
 --! These rules imply that the only time it is OK for both control
---! signals to be deasseted is before the first change of the first
+--! signals to be deasserted is before the first change of the first
 --! control signal.
 --! As soon as the request signal was asserted once, there is no
 --! valid transition that leaves both controls signals deasserted.
@@ -44,9 +44,9 @@ package pcie is
 	--! how the transceiver communicates with the PCIe bus.
 	--!
 	--! For convenient setup, create this record using the @ref new_config
-	--! function and only specifiy the number of channels you plan to use.
+	--! function and only specify the number of channels you plan to use.
 	--! This should result in a full-duplex host-FPGA performance of roughly
-	--! 2.79 Gbyte/s.
+	--! 2.79 GByte/s.
 	--!
 	--! _Example_:
 	--!
@@ -61,7 +61,7 @@ package pcie is
 	--! * `max_request_bytes`:
 	--!
 	--!   Sets the maximum number of bytes a channel is allowed to
-	--!   requests from main memory.
+	--!   request from main memory.
 	--!   This generic corresponds directly to the `Max_Read_Request_Size`
 	--!   parameter of the PCIe base specification.
 	--!   Allowed values for `max_request_bytes` are (as taken from the PCIe 2
@@ -72,7 +72,7 @@ package pcie is
 	--!   limit the choice to a smaller value than the PCIe specification would
 	--!   allow.
 	--!
-	--!   **Warning!**: If a unsupported value is selected for
+	--!   **Warning!**: If an unsupported value is selected for
 	--!   `max_request_bytes` the packets will most likely be silently dropped.
 	--!
 	--!   On Linux host systems supported values for `max_request_bytes` and
@@ -98,9 +98,9 @@ package pcie is
 	--!   Like `max_request_bytes`, `max_payload_bytes` corresponds to
 	--!   a PCIe parameter (`Max_Payload_Size` in this case).
 	--!   Read the `max_request_bytes` segment to see how this generic can and 
-	--!   shoud be set.
+	--!   should be set.
 	--!   Channels try to always maximise payload sizes up to `max_payload_size`
-	--!   . They will not do so if either the outstanding request ist smaller
+	--!   . They will not do so if either the outstanding request is smaller
 	--!   than `max_payload_bytes` or if the payload would cross a page boundary
 	--!   on the main memory.
 	--!
@@ -303,7 +303,7 @@ package pcie is
 	--! A fragment contains four words of a transceiver-internal
 	--! packet format in `data`.
 	--! `keep` signifies which of the four DWords that are contained
-	--! within `data` are valied.
+	--! within `data` are valid.
 	--! `sof` and `eof` signify whether the fragment is at a boundary of
 	--! the packet.
 	type fragment is record
@@ -419,8 +419,13 @@ package pcie is
 	--! The 'from_ep' and 'to_ep' interfaces need to be connected to the
 	--! 'to_rx'/'from_rx' interfaces of the endpoit.
 	--! The user data is delivered at the 'o' interface.
+	--! If 'debug' is set to 'true' additional submodules will be
+	--! inserted. These submodules observe several ports inside the
+	--! channel and contain signal with set 'mark_debug' attributes
+	--! for easier debugging with ILAs.
 	component host_rx_channel
 		generic(
+			debug  : boolean := false;
 			config : transceiver_configuration;
 			id     : positive
 		);
@@ -449,10 +454,15 @@ package pcie is
 	--! It also **must** be in the interval
 	--! [rx_count(config)+1, channel_count(config)].
 	--! The 'from_ep' and 'to_ep' interfaces need to be connected to the
-	--! 'to_tx'/'from_tx' interfaces of the endpoit.
+	--! 'to_tx'/'from_tx' interfaces of the endpoint.
 	--! The user data is accepted at the 'i' interface.
+	--! If 'debug' is set to 'true' additional submodules will be
+	--! inserted. These submodules observe several ports inside the
+	--! channel and contain signal with set 'mark_debug' attributes
+	--! for easier debugging with ILAs.
 	component host_tx_channel
 		generic(
+			debug  : boolean := false;
 			config : transceiver_configuration;
 			id     : positive
 		);

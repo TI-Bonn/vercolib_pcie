@@ -7,6 +7,7 @@ use work.host_channel_types.all;
 
 entity host_rx_channel is
 	generic(
+		debug  : boolean := true;
 		config : transceiver_configuration;
 		id     : positive
 	);
@@ -26,52 +27,57 @@ entity host_rx_channel is
 end entity host_rx_channel;
 
 architecture STRUCT of host_rx_channel is
-	-- attribute mark_debug : string;
-	
-	signal rst_channel : std_logic;                           
-	                                                          
-	signal rq_instr_vld : std_logic;                          
-	signal rq_instr : requester_instr_t;                      
-                                                              
-	signal int_instr_vld : std_logic;                         
-	signal int_instr : interrupt_instr_t;                     
-                                                              
-	signal cpl : fragment;                                      
-	signal cpl_vld : std_logic;                               
-                                                              
-	signal int_writer_vld : std_logic;                        
-	signal int_writer_req : std_logic;                        
-	signal int_writer : tlp_header_info_t;                    
+	signal rst_channel : std_logic;
+
+	signal rq_instr_vld : std_logic;
+	signal rq_instr : requester_instr_t;
+
+	signal int_instr_vld : std_logic;
+	signal int_instr : interrupt_instr_t;
+
+	signal cpl : fragment;
+	signal cpl_vld : std_logic;
+
+	signal int_writer_vld : std_logic;
+	signal int_writer_req : std_logic;
+	signal int_writer : tlp_header_info_t;
 	signal int_writer_payload : std_logic_vector(31 downto 0);
-                                                              
-	signal req_writer_vld : std_logic;                        
-	signal req_writer_req : std_logic;                        
-	signal req_writer : tlp_header_info_t;                    
-                                                              
-	signal tag : std_logic_vector(4 downto 0);       
-	signal tag_vld : std_logic;                               
-	signal tag_req : std_logic;                               
-	signal pipe : fragment;                                     
-	signal pipe_vld : std_logic;                              
-	signal pipe_req : std_logic;                              
-	
+
+	signal req_writer_vld : std_logic;
+	signal req_writer_req : std_logic;
+	signal req_writer : tlp_header_info_t;
+
+	signal tag : std_logic_vector(4 downto 0);
+	signal tag_vld : std_logic;
+	signal tag_req : std_logic;
+	signal pipe : fragment;
+	signal pipe_vld : std_logic;
+	signal pipe_req : std_logic;
+
 begin
-	
---debug: entity work.host_rx_monitor_dbg
---	port map(
---		clk            => clk,
---		rst            => rst,
---		rq_instr_vld   => rq_instr_vld,
---		rq_instr       => rq_instr,
---		int_instr_vld  => int_instr_vld,
---		int_instr      => int_instr,
---		cpl            => cpl,
---		cpl_vld        => cpl_vld,
---		writer_vld     => pipe_vld,
---		writer_req     => pipe_req,
---		writer         => pipe
---	);
-	
+
+dbg: if debug generate
+	mon: entity work.host_rx_monitor_dbg
+		port map(
+			clk            => clk,
+			rst            => rst,
+			rq_instr_vld   => rq_instr_vld,
+			rq_instr       => rq_instr,
+			int_instr_vld  => int_instr_vld,
+			int_instr      => int_instr,
+			cpl            => cpl,
+			cpl_vld        => cpl_vld,
+			writer_vld     => pipe_vld,
+			writer_req     => pipe_req,
+			writer         => pipe,
+			user_vld       => o_vld,
+			user_req       => o_req,
+			user           => o,
+			tag_vld        => tag_vld,
+			tag_req        => tag_req
+		);
+end generate;
+
 decoder: entity work.dma_decoder
 	generic map(
 		CHANNEL_ID => id
@@ -90,9 +96,10 @@ decoder: entity work.dma_decoder
 		int_instr_vld => int_instr_vld,
 		int_instr     => int_instr
 	);
-	
+
 requester: entity work.dma_requester
 	generic map(
+		debug            => debug,
 		MAX_REQUEST_SIZE => config.max_request_bytes,
 		TAG_BITS         => 5,
 		TRANSFER_DIR     => "DOWNSTREAM"
@@ -110,9 +117,12 @@ requester: entity work.dma_requester
 		writer_req => req_writer_req,
 		writer     => req_writer
 	);
-	
+
 interrupt_handler: entity work.rx_dma_interrupt_handler
-	generic map(CHANNEL_ID => id)
+	generic map(
+		debug      => debug,
+		CHANNEL_ID => id
+	)
 	port map(
 		clk            => clk,
 		rst            => rst_channel,
@@ -126,7 +136,7 @@ interrupt_handler: entity work.rx_dma_interrupt_handler
 		writer         => int_writer,
 		writer_payload => int_writer_payload
 	);
-	
+
 writer: entity work.rx_dma_writer
 	generic map(
 		CHANNEL_ID   => id
@@ -145,7 +155,7 @@ writer: entity work.rx_dma_writer
 		o_vld         => pipe_vld, --ep_vld,
 		o_req         => pipe_req --ep_req
 	);
-	
+
 out_req_pipe: entity work.pipe_register
 	port map(
 		clk   => clk,
@@ -155,8 +165,8 @@ out_req_pipe: entity work.pipe_register
 		o     => to_ep,
 		o_vld => to_ep_vld,
 		o_req => to_ep_req
-	);	
-	
+	);
+
 dma_buffer: entity work.rx_dma_buffer
 	generic map(
 		tag_bits => 5,

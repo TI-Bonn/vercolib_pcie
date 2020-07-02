@@ -36,6 +36,7 @@ architecture top of loopback is
 	signal rx_user: pcie.rx_stream := pcie.default_rx_stream;
 	signal tx_no_eos: pcie.tx_stream := pcie.default_tx_stream;
 	signal tx_user: pcie.tx_stream := pcie.default_tx_stream;
+
 begin
 
 ep: pcie.gen2_endpoint
@@ -87,10 +88,11 @@ port map(
 	o => rx_user
 );
 
+
 tx_no_eos.payload <= rx_user.payload;
-tx_no_eos.cnt <= rx_user.cnt;
+tx_no_eos.cnt     <= rx_user.cnt;
 timeout: pcie_utilities.tx_stream_timeout
-generic map(timeout => 5)
+generic map(timeout => 100)
 port map(
 	clk => clk,
 
@@ -102,6 +104,7 @@ port map(
 	o_vld => tx_user_vld,
 	o_req => tx_user_req
 );
+
 
 tx: pcie.host_tx_channel
 generic map(config => pcie_config, id => 2)

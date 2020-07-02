@@ -7,13 +7,14 @@ use work.host_channel_types.all;
 
 entity tx_dma_interrupt_handler is
 	generic(
-		CHANNEL_ID: natural
+		debug : boolean := false;
+		CHANNEL_ID : natural
 	);
 	port (
 		clk : in std_logic;
 		rst : in std_logic;
-		
-		-- signal to reset requester 
+
+		-- signal to reset requester
 		-- in case of an interrupt this signal is active exactly for one clock cycle
 		ctrl_rst : out std_logic := '0';
 
@@ -43,9 +44,9 @@ architecture RTL of tx_dma_interrupt_handler is
 	signal transfer_length : unsigned(9 downto 0);
 	signal transfer_eot : std_logic;
 	signal transfer_eof : std_logic;
-	
+
 begin
-	
+
 filter: entity work.tx_dma_interrupt_handler_filter
 	port map(
 		clk => clk,
@@ -58,9 +59,13 @@ filter: entity work.tx_dma_interrupt_handler_filter
 		transfer_eof => transfer_eof,
 		transfer_eot => transfer_eot
 	);
-	
+
 handler: entity work.dma_interrupt_handler
-	generic map(CHANNEL_ID => CHANNEL_ID)
+	generic map(
+		debug      => debug,
+		CHANNEL_ID => CHANNEL_ID,
+		direction  => "tx"
+	)
 	port map(
 		clk             => clk,
 		rst             => rst,

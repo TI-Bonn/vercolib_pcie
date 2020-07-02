@@ -1,0 +1,44 @@
+#!/bin/bash
+
+if [[ $UID != 0 ]]; then
+  sudo $0 $@
+  exit $?
+fi
+
+DKMS_PACKAGE_NAME=vercolib_pcie
+DKMS_PACKAGE_VERSION="0.1"
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+PACKAGE_DIR="/usr/src/$DKMS_PACKAGE_NAME-$DKMS_PACKAGE_VERSION"
+
+is_new_dkms=false
+
+if [ ! -d $PACKAGE_DIR ]; then
+	mkdir -p $PACKAGE_DIR
+	is_new_dkms=true
+fi
+
+
+cp $SCRIPT_DIR/*.c $PACKAGE_DIR
+cp $SCRIPT_DIR/*.h $PACKAGE_DIR
+cp $SCRIPT_DIR/Makefile $PACKAGE_DIR
+
+cat << EOF > $PACKAGE_DIR/dkms.conf
+PACKAGE_NAME=$DKMS_PACKAGE_NAME
+PACKAGE_VERSION=$DKMS_PACKAGE_VERSION
+
+MAKE="make KERNEL_UNAME=\${kernelver} SYSSRC=\$kernel_source_dir"
+CLEAN="make clean"
+
+BUILT_MODULE_NAME=vercolib_pcie
+DEST_MODULE_LOCATION="/kernel/drivers/char"
+
+AUTOINSTALL="yes"
+EOF
+
+if [ $is_new_dkms = true ]; then
+	echo "dkms setup run first time for this version. Running setup."
+	dkms add -m $DKMS_PACKAGE_NAME -v $DKMS_PACKAGE_VERSION
+fi
+dkms build -m $DKMS_PACKAGE_NAME -v $DKMS_PACKAGE_VERSION
+dkms install -m $DKMS_PACKAGE_NAME -v $DKMS_PACKAGE_VERSION

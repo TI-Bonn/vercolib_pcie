@@ -29,64 +29,47 @@ port(
 end entity;
 
 architecture impl of tx_stream_timeout is
-	constant timer_bits: natural := natural(ceil(log2(real(timeout))));
-	signal count: unsigned(timer_bits - 1 downto 0) := (others => '0');
-	signal timer_fired: std_ulogic := '0';
-
-	signal stored_req: std_ulogic := '0';
-	signal stored_word: pcie.tx_stream := pcie.default_tx_stream;
-	signal stored_vld: std_ulogic := '0';
-
-	signal update_output: std_ulogic := '0';
+	signal counter: natural := 0;
+	signal buffered: pcie.tx_stream := pcie.default_tx_stream;
+	signal buffered_vld: std_ulogic := '0';
+	signal timeout_triggered, eos_buffered: std_ulogic := '0';
 begin
-
-i_req <= stored_req or not i_vld;
-stored_req <= (o_req and update_output) or not stored_vld;
 
 timer: process
 begin
 	wait until rising_edge(clk);
-
-	if o_req and stored_vld and (not i_vld) then
-		count <= count + 1;
-	end if;
-
-	if o_req and i_vld then
-		count <= (count'range => '0');
-	end if;
-end process;
-timer_fired <= '1' when (count = to_unsigned(timeout, timer_bits)) else '0';
-
-
-hold: process
-begin
-	wait until rising_edge(clk);
-
-	if stored_req then
-		stored_word <= i;
-		stored_vld <= i_vld;
+	if ((not i_vld) and buffered_vld and o_req) = '1' then
+		counter <= counter + 1;
+	else
+		counter <= 0;
 	end if;
 end process;
 
-update_output <= (i_vld) or
-                 (timer_fired) or
-                 (stored_word.end_of_stream and stored_vld);
+timeout_triggered <= '1' when counter >= timeout else '0';
+eos_buffered <= buffered_vld and buffered.end_of_stream;
+i_req <= o_req or not i_vld;
+
 output: process
 begin
 	wait until rising_edge(clk);
-
-	if o_req then
-
+	if o_req = '1' then
 		o_vld <= '0';
-
-		if update_output then
-			o <= stored_word;
-			o.end_of_stream <= o.end_of_stream or timer_fired;
-			o_vld <= stored_vld;
+		if i_vld = '1' then
+			buffered_vld <= '1';
+			buffered <= i;
+			if buffered_vld = '1' then
+				o_vld <= buffered_vld;
+				o <= buffered;
+			end if;
+		else
+			if (eos_buffered or timeout_triggered) = '1' then
+				o_vld <= buffered_vld;
+				buffered_vld <= '0';
+				o <= buffered;
+				o.end_of_stream <= '1';
+			end if;
 		end if;
-
 	end if;
 end process;
-
 
 end architecture;

@@ -9,30 +9,31 @@ use work.utils.all;
 
 entity tx_dma_writer is
 	generic(
+		debug        : boolean;
 		CHANNEL_ID   : natural
 	);
 	port (
 		clk : in std_logic;
 		rst : in std_logic;
-		
+
 		-- input port for interrupt handler
 		int_vld     : in  std_logic;
 		int_req     : out std_logic;
 		int         : in  tlp_header_info_t;
 		int_payload : in  dword;
-		
+
 		-- input port for DMA transfers (MRd in DOWNSTREAM, MWr in UPSTREAM)
 		transfer_vld : in  std_logic;
 		transfer_req : out std_logic;
 		transfer     : in  tlp_header_info_t;
-		
+
 		-- input from payload fifo
 		payload_vld : in  std_logic;
 		payload_req : out std_logic;
 		payload     : in  tx_stream;
 		payload_cnt : in  unsigned(11 downto 0);
 		payload_eot : in  std_logic := '0';
-		
+
 		o     : out fragment := default_fragment;
 		o_eot : out std_logic;
 		o_vld : out std_logic := '0';
@@ -48,9 +49,10 @@ architecture RTL of tx_dma_writer is
 	signal buf_eot : std_logic;
 
 begin
-	
+
 writer_packer: entity work.dma_writer_packer
 	generic map(
+		debug        => debug,
 		CHANNEL_ID   => CHANNEL_ID,
 		TRANSFER_DIR => "UPSTREAM"
 	)
@@ -74,11 +76,14 @@ writer_packer: entity work.dma_writer_packer
 		o_vld       => o_vld,
 		o_req       => o_req
 	);
-	
+
 writer_buffer: entity work.writer_buffer
+	generic map(
+		debug      => debug
+	)
 	port map(
 		clk        => clk,
-		rst        => rst,
+		rst        => '0',
 		i_vld      => payload_vld,
 		i_req      => payload_req,
 		i          => payload,
